@@ -1,11 +1,10 @@
 """Seeded, discrete-time abstract agent simulation.
 
-The interaction rule is deliberately non-tactical: it samples abstract
-cross-team encounters and applies a game-style outcome probability. It does
-not model weapon performance, aiming, range, cover, or real-world tactics.
+Agents hold two opposing formations. Recruits occupy the front rank, regulars
+stand behind them, and veterans form the rear ranks. Combat remains an
+abstract stochastic game mechanic, not a realistic tactical or weapon model.
 """
 from dataclasses import dataclass, field
-import math
 import random
 from agent import Agent, AgentState, Team
 from battlefield import Battlefield, build_armies
@@ -17,7 +16,7 @@ class SimulationConfig:
     red_count: int = 30
     steps: int = 1200
     seed: int = 42
-    movement: float = 0.65
+    movement: float = 0.0
     encounter_probability: float = 0.035
     hit_probability: float = 0.28
     wound_severity: float = 0.38
@@ -53,21 +52,16 @@ class Simulation:
         return self.agents[agent_id]
 
     def _move_agents(self):
-        # A gentle, bounded random walk keeps the display alive without
-        # encoding tactical routes or pursuit behaviour.
-        for agent in self.agents:
-            if not agent.is_operational:
-                continue
-            dx = self.rng.uniform(-1.0, 1.0) * self.config.movement
-            dy = self.rng.uniform(-1.0, 1.0) * self.config.movement
-            agent.x, agent.y = self.world.clamp(agent.x + dx, agent.y + dy)
+        # Formation positions remain fixed in this milestone. This makes the
+        # front line and the rank depth easy to inspect and compare.
+        return
 
     def _abstract_encounters(self):
         blue = [a for a in self.agents if a.team == Team.BLUE and a.is_operational]
         red = [a for a in self.agents if a.team == Team.RED and a.is_operational]
         if not blue or not red:
             return
-        # Random pairings are a toy interaction mechanism, not target selection.
+        # Random pairings are abstract event sampling, not tactical target choice.
         pairs = min(len(blue), len(red), max(1, (len(blue) + len(red)) // 12))
         for _ in range(pairs):
             if self.rng.random() >= self.config.encounter_probability:
