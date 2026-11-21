@@ -70,6 +70,12 @@ GERMAN_RANK_ORDER = tuple(GermanRank)
 RANK_ORDERS = {Team.BLUE: US_RANK_ORDER, Team.RED: GERMAN_RANK_ORDER}
 RANK_ORDER = US_RANK_ORDER
 
+class AgentState(str, Enum):
+    ACTIVE = "active"
+    WOUNDED = "wounded"
+    DEAD = "dead"
+
+
 RANK_LABELS = {
     USRank.PRIVATE: ("Private", "PVT"),
     USRank.PRIVATE_FIRST_CLASS: ("Private First Class", "PFC"),
