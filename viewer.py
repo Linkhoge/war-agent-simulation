@@ -1,22 +1,22 @@
-"""Arcade viewer for army formations and animated battle events."""
+"""Arcade display for a WWII-era U.S. Army vs German Heer scenario."""
 import arcade
-from agent import AgentState, Team, RANK_ORDER, RANK_LABELS
+from agent import Team, RANK_ORDERS, RANK_LABELS
 
 SCREEN_W, SCREEN_H = 1240, 800
 PANEL_W = 340
 BG = (13, 18, 30)
-BLUE = (65, 155, 255)
-RED = (245, 85, 95)
+BLUE = (75, 145, 205)
+RED = (145, 105, 82)
 PALE = (225, 232, 245)
 GOLD = (255, 205, 90)
 MUTED = (115, 130, 151)
 HIT = (255, 194, 105)
-MISS = (150, 205, 255)
+MISS = (190, 205, 220)
 
 
 class BattleWindow(arcade.Window):
     def __init__(self, simulation):
-        super().__init__(SCREEN_W, SCREEN_H, "War Agent Simulation — army ranks")
+        super().__init__(SCREEN_W, SCREEN_H, "WWII Western Front — U.S. Army vs German Heer")
         self.sim = simulation
         self.paused = False
         self.speed = 1
@@ -40,11 +40,11 @@ class BattleWindow(arcade.Window):
         x, y = pos(agent.x, agent.y)
         colour = BLUE if agent.team == Team.BLUE else RED
         radius = 3.2 + agent.visual_scale * 3.2
-        if agent.state.value == "dead":
+        if agent.state == "dead":
             arcade.draw_circle_filled(x, y, radius, (76, 82, 94))
             arcade.draw_line(x - radius, y - radius, x + radius, y + radius, PALE, 1.2)
             arcade.draw_line(x - radius, y + radius, x + radius, y - radius, PALE, 1.2)
-        elif agent.state.value == "wounded":
+        elif agent.state == "wounded":
             arcade.draw_circle_filled(x, y, radius, GOLD)
             arcade.draw_circle_outline(x, y, radius + 2, colour, 1.5)
         else:
@@ -70,11 +70,13 @@ class BattleWindow(arcade.Window):
         gap_left = pos(world.blue_front_x + 1.5, 0)[0]
         gap_right = pos(world.red_front_x - 1.5, 0)[0]
         arcade.draw_lbwh_rectangle_filled(gap_left, oy, gap_right - gap_left, map_h, (31, 39, 52))
-        for team, colour in ((Team.BLUE, BLUE), (Team.RED, RED)):
+        for team, colour, title in (
+            (Team.BLUE, BLUE, "U.S. ARMY"),
+            (Team.RED, RED, "GERMAN HEER"),
+        ):
             line_x, _ = pos(world.front_line_x(team), 0)
             arcade.draw_line(line_x, oy + 10, line_x, oy + map_h - 10, colour, 3)
-            label_x = line_x - 34 if team == Team.BLUE else line_x + 8
-            arcade.draw_text("FRONT", label_x, oy + map_h - 28, colour, 9, bold=True)
+            arcade.draw_text(title, line_x - 42, oy + map_h - 28, colour, 9, bold=True)
 
         arcade.draw_text("CASUALTIES", pos(world.margin, 0)[0], oy + 8, MUTED, 8)
         arcade.draw_text("CASUALTIES", pos(world.width - world.margin, 0)[0] - 62, oy + 8, MUTED, 8)
@@ -94,8 +96,8 @@ class BattleWindow(arcade.Window):
             self._draw_agent(agent, pos)
 
         panel_x = SCREEN_W - PANEL_W + 18
-        arcade.draw_text("WAR AGENT SIM", panel_x, SCREEN_H - 42, PALE, 19, bold=True)
-        arcade.draw_text("Ranked opposing formations", panel_x, SCREEN_H - 68, MUTED, 11)
+        arcade.draw_text("WESTERN FRONT · 1944", panel_x, SCREEN_H - 42, PALE, 17, bold=True)
+        arcade.draw_text("U.S. Army vs German Heer", panel_x, SCREEN_H - 68, MUTED, 11)
         arcade.draw_text(
             f"Step {self.sim.tick:,} / {self.sim.config.steps:,}",
             panel_x, SCREEN_H - 106, PALE, 13
@@ -107,39 +109,48 @@ class BattleWindow(arcade.Window):
 
         summary = self.sim.summary()
         y = SCREEN_H - 174
-        for team, colour in ((Team.BLUE, BLUE), (Team.RED, RED)):
-            arcade.draw_text(team.value.upper(), panel_x, y, colour, 14, bold=True)
-            y -= 21
+        for team, colour, label in (
+            (Team.BLUE, BLUE, "U.S. ARMY"),
+            (Team.RED, RED, "GERMAN HEER"),
+        ):
+            arcade.draw_text(label, panel_x, y, colour, 13, bold=True)
+            y -= 19
             for state in ("active", "wounded", "dead"):
                 arcade.draw_text(
                     f"{state.title():<9} {summary[f'{team.value}_{state}']:>4}",
-                    panel_x + 8, y, PALE, 11
+                    panel_x + 8, y, PALE, 10
                 )
-                y -= 17
-            y -= 8
+                y -= 15
+            y -= 6
 
-        arcade.draw_text("RANK LADDER · BLUE / RED", panel_x, y, PALE, 10, bold=True)
-        y -= 19
-        for rank in RANK_ORDER:
-            blue_count = sum(a.rank == rank and a.team == Team.BLUE for a in self.sim.agents)
-            red_count = sum(a.rank == rank and a.team == Team.RED for a in self.sim.agents)
-            if blue_count or red_count:
-                label, abbreviation = RANK_LABELS[rank]
-                arcade.draw_text(
-                    f"{abbreviation:<4} {label:<22} {blue_count:>2}/{red_count:<2}",
-                    panel_x + 4, y, MUTED, 8
-                )
-                y -= 13
-                if y < 76:
-                    break
+        arcade.draw_text("HISTORICAL RANKS · U.S. / HEER", panel_x, y, PALE, 9, bold=True)
+        y -= 17
+        us_order, de_order = RANK_ORDERS[Team.BLUE], RANK_ORDERS[Team.RED]
+        rows = max(len(us_order), len(de_order))
+        for index in range(rows):
+            pieces = []
+            if index < len(us_order):
+                rank = us_order[index]
+                label, abbr = RANK_LABELS[rank]
+                count = sum(a.team == Team.BLUE and a.rank == rank for a in self.sim.agents)
+                if count:
+                    pieces.append(f"US {abbr} {count}")
+            if index < len(de_order):
+                rank = de_order[index]
+                label, abbr = RANK_LABELS[rank]
+                count = sum(a.team == Team.RED and a.rank == rank for a in self.sim.agents)
+                if count:
+                    pieces.append(f"DE {abbr} {count}")
+            if pieces:
+                arcade.draw_text("   ".join(pieces), panel_x + 3, y, MUTED, 8)
+                y -= 12
+            if y < 76:
+                break
 
         arcade.draw_text("Space pause | ↑↓ speed | R restart | Esc quit",
                          panel_x, 52, PALE, 9)
         arcade.draw_text("Gold = wounded · Grey × = dead · Rings = hit/fire",
                          panel_x, 32, MUTED, 8)
-
-    def on_close(self):
-        super().on_close()
 
 
 def run_viewer(simulation):
