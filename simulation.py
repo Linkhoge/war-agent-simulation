@@ -1,4 +1,4 @@
-"""Small, seeded agent-based battle model with simple cover and combat behaviour."""
+"""Small, seeded agent-based battle model with simple infantry combat behaviour."""
 from dataclasses import dataclass, field
 import random
 from agent import Agent, AgentState, Team
@@ -76,16 +76,6 @@ class Simulation:
                     a.x,a.y=self.world.clamp(a.x+dx/dist*.12,a.y+dy/dist*.12)
                 continue
             a.suppression=max(0.0,a.suppression-.012)
-            if a.suppression>.18:
-                if a.cover_x is None:
-                    cover=self.world.nearest_cover(a.x,a.y)
-                    if cover: a.cover_x,a.cover_y=cover
-                if a.cover_x is not None:
-                    dx=a.cover_x-a.x; dy=a.cover_y-a.y
-                    dist=max(1.0,(dx*dx+dy*dy)**.5)
-                    a.x,a.y=self.world.clamp(a.x+dx/dist*.22,a.y+dy/dist*.22)
-            elif a.cover_x is not None and (a.x-a.cover_x)**2+(a.y-a.cover_y)**2<1.0:
-                a.cover_x=a.cover_y=None
             if a.reload_ticks>0:
                 a.reload_ticks-=1
                 if a.reload_ticks==0: a.ammo=self.config.magazine_size
@@ -106,11 +96,9 @@ class Simulation:
                 source.reload_ticks=self.config.reload_duration
                 continue
             source.ammo-=1; source.shots_fired+=1; source.fire_flash_until=self.tick+2
-            # Cover and experience influence the abstract chance, not a physical ballistics model.
-            target_feature=self.world.feature_at(target.x,target.y)
-            cover_bonus=target_feature.cover if target_feature else 0.0
+            # Experience and suppression affect a simple abstract hit chance.
             experience_bonus=source.experience*.10
-            accuracy=max(.04,min(.8,self.config.hit_probability+experience_bonus-cover_bonus*.22
+            accuracy=max(.04,min(.8,self.config.hit_probability+experience_bonus
                                  -source.suppression*.12))
             hit=self.rng.random()<accuracy
             self.tracers.append(Tracer(source.agent_id,target.agent_id,(source.x,source.y),
