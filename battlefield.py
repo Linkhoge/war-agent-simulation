@@ -9,11 +9,11 @@ class Battlefield:
     width: float = 100.0
     height: float = 70.0
     margin: float = 8.0
-    blue_front_x: float = 31.0
-    red_front_x: float = 69.0
+    blue_front_x: float = 36.0
+    red_front_x: float = 64.0
     formation_columns: int = 8
     formation_spacing: float = 3.8
-    row_spacing: float = 2.2
+    row_spacing: float = 0.9
     casualty_columns: int = 8
 
     def clamp(self, x: float, y: float) -> tuple[float, float]:
