@@ -24,7 +24,7 @@ The default scenario is a fictional encounter inspired by the 1944 Western Front
 - Live team totals and per-rank population counts.
 - Seeded, reproducible runs and a headless mode.
 
-The model is a toy simulation, not a tactical planner, weapons model, or predictor. Combat events are abstract stochastic game events; tracer graphics are visual indicators, not physical projectile paths. Terrain and cover are simple zones, not detailed geometry or realistic line-of-sight calculations. Rank and recruit effects are illustrative gameplay rules, not claims about historical survivability.
+The model is a toy simulation, not a tactical planner, weapons model, or predictor. Combat events are abstract stochastic game events; tracer graphics are visual indicators, not physical projectile paths. Rank and recruit effects are illustrative gameplay rules, not claims about historical survivability.
 
 ## Requirements
 
