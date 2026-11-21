@@ -54,8 +54,8 @@ class SimulationTests(unittest.TestCase):
                 self.assertGreater(min(a.x for a in regulars), min(a.x for a in recruits))
                 self.assertGreater(min(a.x for a in veterans), min(a.x for a in regulars))
             else:
-                self.assertLess(max(a.x for a in regulars), max(a.x for a in recruits))
-                self.assertLess(max(a.x for a in veterans), max(a.x for a in regulars))
+                self.assertGreater(min(a.x for a in regulars), max(a.x for a in recruits))
+                self.assertGreater(min(a.x for a in veterans), max(a.x for a in regulars))
 
     def test_formation_positions_stay_fixed(self):
         sim = Simulation(SimulationConfig(blue_count=12, red_count=12, steps=20, seed=9))
