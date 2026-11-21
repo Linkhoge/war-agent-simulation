@@ -121,11 +121,12 @@ class BattleWindow(arcade.Window):
         arcade.draw_text("RANK LADDER · BLUE / RED", panel_x, y, PALE, 10, bold=True)
         y -= 19
         for rank in RANK_ORDER:
-            count = sum(a.rank == rank for a in self.sim.agents)
-            if count:
+            blue_count = sum(a.rank == rank and a.team == Team.BLUE for a in self.sim.agents)
+            red_count = sum(a.rank == rank and a.team == Team.RED for a in self.sim.agents)
+            if blue_count or red_count:
                 label, abbreviation = RANK_LABELS[rank]
                 arcade.draw_text(
-                    f"{abbreviation:<4} {label:<25} {count:>3}",
+                    f"{abbreviation:<4} {label:<22} {blue_count:>2}/{red_count:<2}",
                     panel_x + 4, y, MUTED, 8
                 )
                 y -= 13
