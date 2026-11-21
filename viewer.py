@@ -1,20 +1,22 @@
-"""Arcade viewer for opposing formations, rank depth, tracers and casualties."""
+"""Arcade viewer for army formations and animated battle events."""
 import arcade
-from agent import AgentState, Rank, Team
+from agent import AgentState, Team, RANK_ORDER, RANK_LABELS
 
-SCREEN_W, SCREEN_H = 1120, 760
-PANEL_W = 300
+SCREEN_W, SCREEN_H = 1240, 800
+PANEL_W = 340
 BG = (13, 18, 30)
 BLUE = (65, 155, 255)
 RED = (245, 85, 95)
 PALE = (225, 232, 245)
 GOLD = (255, 205, 90)
 MUTED = (115, 130, 151)
+HIT = (255, 194, 105)
+MISS = (150, 205, 255)
 
 
 class BattleWindow(arcade.Window):
     def __init__(self, simulation):
-        super().__init__(SCREEN_W, SCREEN_H, "War Agent Simulation — formations")
+        super().__init__(SCREEN_W, SCREEN_H, "War Agent Simulation — army ranks")
         self.sim = simulation
         self.paused = False
         self.speed = 1
@@ -34,19 +36,29 @@ class BattleWindow(arcade.Window):
         elif symbol == arcade.key.ESCAPE:
             self.close()
 
-    def on_update(self, delta_time):
-        if self.paused:
-            return
-        self.accumulator += delta_time * 30 * self.speed
-        while self.accumulator >= 1:
-            self.accumulator -= 1
-            if not self.sim.step():
-                break
+    def _draw_agent(self, agent, pos):
+        x, y = pos(agent.x, agent.y)
+        colour = BLUE if agent.team == Team.BLUE else RED
+        radius = 3.2 + agent.visual_scale * 3.2
+        if agent.state.value == "dead":
+            arcade.draw_circle_filled(x, y, radius, (76, 82, 94))
+            arcade.draw_line(x - radius, y - radius, x + radius, y + radius, PALE, 1.2)
+            arcade.draw_line(x - radius, y + radius, x + radius, y - radius, PALE, 1.2)
+        elif agent.state.value == "wounded":
+            arcade.draw_circle_filled(x, y, radius, GOLD)
+            arcade.draw_circle_outline(x, y, radius + 2, colour, 1.5)
+        else:
+            arcade.draw_circle_filled(x, y, radius, colour)
+            arcade.draw_circle_outline(x, y, radius + 1, PALE, 1)
+        if agent.fire_flash_until >= self.sim.tick and agent.is_operational:
+            arcade.draw_circle_outline(x, y, radius + 5, GOLD, 2)
+        if agent.hit_flash_until >= self.sim.tick:
+            arcade.draw_circle_outline(x, y, radius + 7, (255, 245, 220), 2)
 
     def on_draw(self):
         self.clear(BG)
         world = self.sim.world
-        scale = min((SCREEN_W - PANEL_W - 40) / world.width, (SCREEN_H - 40) / world.height)
+        scale = min((SCREEN_W - PANEL_W - 50) / world.width, (SCREEN_H - 50) / world.height)
         ox, oy = 20, 20
         map_w, map_h = world.width * scale, world.height * scale
         arcade.draw_lbwh_rectangle_filled(ox, oy, map_w, map_h, (25, 34, 48))
@@ -55,58 +67,78 @@ class BattleWindow(arcade.Window):
         def pos(x, y):
             return ox + x * scale, oy + y * scale
 
-        # The central no-man's-land sits between the two coloured front lines.
-        gap_left = pos(world.blue_front_x + 2, 0)[0]
-        gap_right = pos(world.red_front_x - 2, 0)[0]
+        gap_left = pos(world.blue_front_x + 1.5, 0)[0]
+        gap_right = pos(world.red_front_x - 1.5, 0)[0]
         arcade.draw_lbwh_rectangle_filled(gap_left, oy, gap_right - gap_left, map_h, (31, 39, 52))
         for team, colour in ((Team.BLUE, BLUE), (Team.RED, RED)):
             line_x, _ = pos(world.front_line_x(team), 0)
             arcade.draw_line(line_x, oy + 10, line_x, oy + map_h - 10, colour, 3)
             label_x = line_x - 34 if team == Team.BLUE else line_x + 8
-            arcade.draw_text("FRONT LINE", label_x, oy + map_h - 28, colour, 9)
+            arcade.draw_text("FRONT", label_x, oy + map_h - 28, colour, 9, bold=True)
 
-        # Tracers are short-lived abstract encounter indicators, not physical trajectories.
+        arcade.draw_text("CASUALTIES", pos(world.margin, 0)[0], oy + 8, MUTED, 8)
+        arcade.draw_text("CASUALTIES", pos(world.width - world.margin, 0)[0] - 62, oy + 8, MUTED, 8)
+
         for tracer in self.sim.tracers:
+            age = max(0, self.sim.tick - tracer.created_at)
+            progress = min(1.0, age / 4.0)
             x1, y1 = pos(*tracer.start)
             x2, y2 = pos(*tracer.end)
-            age = self.sim.tick - tracer.created_at
-            alpha = max(35, 230 - age * 38)
-            arcade.draw_line(x1, y1, x2, y2, (255, 220, 125, alpha), 2)
+            bx = x1 + (x2 - x1) * progress
+            by = y1 + (y2 - y1) * progress
+            colour = HIT if tracer.hit else MISS
+            arcade.draw_line(x1, y1, bx, by, colour, 2)
+            arcade.draw_circle_filled(bx, by, 2.5, colour)
 
         for agent in self.sim.agents:
-            x, y = pos(agent.x, agent.y)
-            colour = BLUE if agent.team == Team.BLUE else RED
-            radius = {Rank.RECRUIT: 3.4, Rank.REGULAR: 5.0, Rank.VETERAN: 7.0}[agent.rank]
-            if agent.state == AgentState.DEAD:
-                arcade.draw_circle_filled(x, y, radius, (85, 91, 102))
-                arcade.draw_line(x - radius, y - radius, x + radius, y + radius, PALE, 1)
-                arcade.draw_line(x - radius, y + radius, x + radius, y - radius, PALE, 1)
-            elif agent.state == AgentState.WOUNDED:
-                arcade.draw_circle_filled(x, y, radius, GOLD)
-                arcade.draw_circle_outline(x, y, radius + 2, colour, 1)
-            else:
-                arcade.draw_circle_filled(x, y, radius, colour)
-                arcade.draw_circle_outline(x, y, radius + 1, PALE, 1)
+            self._draw_agent(agent, pos)
 
         panel_x = SCREEN_W - PANEL_W + 18
-        arcade.draw_text("WAR AGENT SIM", panel_x, SCREEN_H - 42, PALE, 18, bold=True)
-        arcade.draw_text("Two opposing rank formations", panel_x, SCREEN_H - 68, MUTED, 11)
-        arcade.draw_text(f"Step: {self.sim.tick} / {self.sim.config.steps}", panel_x, SCREEN_H - 108, PALE, 13)
-        arcade.draw_text(f"Speed: {self.speed}x   {'PAUSED' if self.paused else ''}", panel_x, SCREEN_H - 132, GOLD, 11)
+        arcade.draw_text("WAR AGENT SIM", panel_x, SCREEN_H - 42, PALE, 19, bold=True)
+        arcade.draw_text("Ranked opposing formations", panel_x, SCREEN_H - 68, MUTED, 11)
+        arcade.draw_text(
+            f"Step {self.sim.tick:,} / {self.sim.config.steps:,}",
+            panel_x, SCREEN_H - 106, PALE, 13
+        )
+        arcade.draw_text(
+            f"Speed {self.speed}x   {'PAUSED' if self.paused else 'RUNNING'}",
+            panel_x, SCREEN_H - 130, GOLD, 11
+        )
+
         summary = self.sim.summary()
-        y = SCREEN_H - 190
+        y = SCREEN_H - 174
         for team, colour in ((Team.BLUE, BLUE), (Team.RED, RED)):
-            arcade.draw_text(team.value.upper(), panel_x, y, colour, 15, bold=True)
-            y -= 25
+            arcade.draw_text(team.value.upper(), panel_x, y, colour, 14, bold=True)
+            y -= 21
             for state in ("active", "wounded", "dead"):
-                arcade.draw_text(f"{state.title()}: {summary[f'{team.value}_{state}']}", panel_x + 8, y, PALE, 12)
-                y -= 20
-            y -= 15
-        arcade.draw_text("FRONT → BACK", panel_x, 150, PALE, 10, bold=True)
-        arcade.draw_text("Recruit  •  Regular  •  Veteran", panel_x, 128, MUTED, 10)
-        arcade.draw_text("Space pause | ↑↓ speed | R restart | Esc quit", panel_x, 78, MUTED, 9)
-        arcade.draw_text("Gold = wounded   Grey × = dead", panel_x, 52, MUTED, 9)
-        arcade.draw_text("Tracers = abstract encounter events", panel_x, 30, MUTED, 9)
+                arcade.draw_text(
+                    f"{state.title():<9} {summary[f'{team.value}_{state}']:>4}",
+                    panel_x + 8, y, PALE, 11
+                )
+                y -= 17
+            y -= 8
+
+        arcade.draw_text("RANK LADDER · FRONT TO REAR", panel_x, y, PALE, 10, bold=True)
+        y -= 19
+        for rank in RANK_ORDER:
+            count = sum(a.rank == rank for a in self.sim.agents)
+            if count:
+                label, abbreviation = RANK_LABELS[rank]
+                arcade.draw_text(
+                    f"{abbreviation:<4} {label:<25} {count:>3}",
+                    panel_x + 4, y, MUTED, 8
+                )
+                y -= 13
+                if y < 76:
+                    break
+
+        arcade.draw_text("Space pause | ↑↓ speed | R restart | Esc quit",
+                         panel_x, 52, PALE, 9)
+        arcade.draw_text("Gold = wounded · Grey × = dead · Rings = hit/fire",
+                         panel_x, 32, MUTED, 8)
+
+    def on_close(self):
+        super().on_close()
 
 
 def run_viewer(simulation):
