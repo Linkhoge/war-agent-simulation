@@ -64,6 +64,22 @@ class BattleWindow(arcade.Window):
         arcade.draw_lbwh_rectangle_filled(ox, oy, map_w, map_h, (25, 34, 48))
         arcade.draw_lbwh_rectangle_outline(ox, oy, map_w, map_h, (75, 91, 115), 2)
 
+        # Simple terrain colours keep the map readable without a complex tile system.
+        terrain_colours = {
+            "trench": (83, 91, 78), "wall": (126, 119, 101),
+            "building": (105, 91, 79), "forest": (48, 83, 58),
+            "road": (75, 76, 75), "crater": (48, 52, 57),
+        }
+        for feature in world.terrain:
+            fx, fy = pos(feature.x, feature.y)
+            fw, fh = feature.width * scale, feature.height * scale
+            colour = terrain_colours.get(feature.kind, MUTED)
+            if feature.kind == "crater":
+                arcade.draw_ellipse_filled(fx + fw/2, fy + fh/2, fw, fh, colour)
+            else:
+                arcade.draw_lbwh_rectangle_filled(fx, fy, fw, fh, colour)
+            arcade.draw_lbwh_rectangle_outline(fx, fy, fw, fh, (145, 145, 132), 1)
+
         def pos(x, y):
             return ox + x * scale, oy + y * scale
 
@@ -149,6 +165,11 @@ class BattleWindow(arcade.Window):
 
         arcade.draw_text("Space pause | ↑↓ speed | R restart | Esc quit",
                          panel_x, 52, PALE, 9)
+        ammo = sum(a.ammo for a in self.sim.agents if a.team == Team.BLUE), sum(
+            a.ammo for a in self.sim.agents if a.team == Team.RED
+        )
+        arcade.draw_text(f"Ammo remaining  U.S. {ammo[0]}  |  Heer {ammo[1]}",
+                         panel_x, 70, PALE, 9)
         arcade.draw_text("Gold = wounded · Grey × = dead · Rings = hit/fire",
                          panel_x, 32, MUTED, 8)
 
