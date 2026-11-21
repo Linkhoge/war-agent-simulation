@@ -1,16 +1,17 @@
 import unittest
-from agent import Agent, AgentState, Rank, Team
+from agent import Agent, AgentState, Rank, Team, RANK_ORDER
 from simulation import Simulation, SimulationConfig
 
 
 class AgentTests(unittest.TestCase):
-    def test_rank_visual_hierarchy(self):
+    def test_rank_ladder_is_ordered(self):
+        self.assertEqual(RANK_ORDER[0], Rank.RECRUIT)
+        self.assertEqual(RANK_ORDER[-1], Rank.GENERAL)
         recruit = Agent(0, Team.BLUE, Rank.RECRUIT, 1, 1)
-        regular = Agent(1, Team.BLUE, Rank.REGULAR, 1, 1)
-        veteran = Agent(2, Team.BLUE, Rank.VETERAN, 1, 1)
-        self.assertLess(recruit.visual_scale, regular.visual_scale)
-        self.assertLess(regular.visual_scale, veteran.visual_scale)
-        self.assertLess(recruit.resilience, veteran.resilience)
+        general = Agent(1, Team.BLUE, Rank.GENERAL, 1, 1)
+        self.assertLess(recruit.visual_scale, general.visual_scale)
+        self.assertLess(recruit.resilience, general.resilience)
+        self.assertEqual(general.rank_abbreviation, "GEN")
 
     def test_death_is_persistent(self):
         agent = Agent(0, Team.BLUE, Rank.RECRUIT, 1, 1)
@@ -22,7 +23,7 @@ class AgentTests(unittest.TestCase):
 
 class SimulationTests(unittest.TestCase):
     def test_seed_reproducibility(self):
-        config = SimulationConfig(blue_count=12, red_count=12, steps=100, seed=17)
+        config = SimulationConfig(blue_count=24, red_count=24, steps=100, seed=17)
         first = Simulation(config)
         second = Simulation(config)
         first.run()
@@ -31,11 +32,11 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(first.history, second.history)
 
     def test_population_is_conserved(self):
-        sim = Simulation(SimulationConfig(blue_count=8, red_count=9, steps=40, seed=3))
+        sim = Simulation(SimulationConfig(blue_count=18, red_count=19, steps=80, seed=3))
         sim.run()
         final = sim.summary()
-        self.assertEqual(final["blue_active"] + final["blue_wounded"] + final["blue_dead"], 8)
-        self.assertEqual(final["red_active"] + final["red_wounded"] + final["red_dead"], 9)
+        self.assertEqual(final["blue_active"] + final["blue_wounded"] + final["blue_dead"], 18)
+        self.assertEqual(final["red_active"] + final["red_wounded"] + final["red_dead"], 19)
 
     def test_dead_agents_remain_in_population(self):
         sim = Simulation(SimulationConfig(blue_count=5, red_count=5, steps=10, seed=4))
@@ -43,25 +44,53 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(sim.agents[0].state, AgentState.DEAD)
         self.assertIn(sim.agents[0], sim.agents)
 
-    def test_recruits_are_ahead_of_regulars_and_veterans(self):
-        sim = Simulation(SimulationConfig(blue_count=60, red_count=60, seed=12))
+    def test_recruits_are_ahead_of_senior_ranks(self):
+        sim = Simulation(SimulationConfig(blue_count=100, red_count=100, seed=12))
         for team in (Team.BLUE, Team.RED):
             recruits = [a for a in sim.agents if a.team == team and a.rank == Rank.RECRUIT]
-            regulars = [a for a in sim.agents if a.team == team and a.rank == Rank.REGULAR]
-            veterans = [a for a in sim.agents if a.team == team and a.rank == Rank.VETERAN]
-            self.assertTrue(recruits and regulars and veterans)
-            if team == Team.BLUE:
-                self.assertGreater(min(a.x for a in regulars), min(a.x for a in recruits))
-                self.assertGreater(min(a.x for a in veterans), min(a.x for a in regulars))
-            else:
-                self.assertGreater(min(a.x for a in regulars), max(a.x for a in recruits))
-                self.assertGreater(min(a.x for a in veterans), max(a.x for a in regulars))
+            if not recruits:
+                continue
+            ranks_present = sorted(
+                {a.rank for a in sim.agents if a.team == team},
+                key=lambda rank: RANK_ORDER.index(rank)
+            )
+            mean_x = {
+                rank: sum(a.x for a in sim.agents if a.team == team and a.rank == rank)
+                / sum(1 for a in sim.agents if a.team == team and a.rank == rank)
+                for rank in ranks_present
+            }
+            for earlier, later in zip(ranks_present, ranks_present[1:]):
+                if team == Team.BLUE:
+                    self.assertLess(mean_x[earlier], mean_x[later])
+                else:
+                    self.assertGreater(mean_x[earlier], mean_x[later])
 
-    def test_formation_positions_stay_fixed(self):
-        sim = Simulation(SimulationConfig(blue_count=12, red_count=12, steps=20, seed=9))
-        before = [(a.x, a.y) for a in sim.agents]
+    def test_casualty_moves_out_of_formation(self):
+        sim = Simulation(SimulationConfig(blue_count=20, red_count=20, seed=5))
+        agent = next(a for a in sim.agents if a.team == Team.BLUE)
+        original = (agent.x, agent.y)
+        agent.apply_abstract_hit(10)
+        sim._send_to_casualty_area(agent)
+        for _ in range(sim.config.casualty_animation_ticks):
+            sim.tick += 1
+            sim._advance_casualties()
+        self.assertNotEqual((agent.x, agent.y), original)
+        self.assertEqual((agent.x, agent.y), agent.casualty_target)
+
+    def test_shots_create_visible_tracer_events(self):
+        sim = Simulation(SimulationConfig(blue_count=60, red_count=60, steps=5, seed=21,
+                                          encounter_probability=1.0))
+        sim._abstract_encounters()
+        self.assertTrue(sim.tracers)
+        self.assertTrue(all(t.source_id != t.target_id for t in sim.tracers))
+
+    def test_formation_positions_stay_fixed_for_survivors(self):
+        sim = Simulation(SimulationConfig(blue_count=20, red_count=20, steps=20, seed=9,
+                                          encounter_probability=0.0))
+        before = {a.agent_id: (a.x, a.y) for a in sim.agents}
         sim.run()
-        self.assertEqual(before, [(a.x, a.y) for a in sim.agents])
+        for agent in sim.agents:
+            self.assertEqual((agent.x, agent.y), before[agent.agent_id])
 
 
 if __name__ == "__main__":
