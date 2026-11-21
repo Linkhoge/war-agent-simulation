@@ -118,7 +118,7 @@ class BattleWindow(arcade.Window):
                 y -= 17
             y -= 8
 
-        arcade.draw_text("RANK LADDER · FRONT TO REAR", panel_x, y, PALE, 10, bold=True)
+        arcade.draw_text("RANK LADDER · BLUE / RED", panel_x, y, PALE, 10, bold=True)
         y -= 19
         for rank in RANK_ORDER:
             count = sum(a.rank == rank for a in self.sim.agents)
