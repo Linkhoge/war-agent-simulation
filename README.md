@@ -1,23 +1,30 @@
 # War Agent Simulation
 
-An educational, fictional agent-based simulation with two opposing forces, visible formations, a full rank ladder, and animated abstract combat events.
+A fictional, educational agent-based simulation set on a stylised Western Front battlefield in 1944, with a U.S. Army force facing a German Heer force.
 
-The project borrows modular agent/state/update/visualisation ideas from [Linkhoge/rumour-sim](https://github.com/Linkhoge/rumour-sim) and agent-based modelling concepts from Le Nguyen's [Simulation 102](https://medium.com/@ln8378/simulation-102-agent-based-disease-modeling-17307f2de2f3).
+The project adapts the agent/state/update/visualisation structure of [Linkhoge/rumour-sim](https://github.com/Linkhoge/rumour-sim) and agent-based modelling ideas from Le Nguyen's [Simulation 102](https://medium.com/@ln8378/simulation-102-agent-based-disease-modeling-17307f2de2f3).
 
-This is a toy model, not a realistic military simulator, tactical planner, or predictor. Hit probabilities, resilience and visual effects are illustrative game parameters.
+## Historical setting
 
-## What's in it
+The default scenario is a fictional encounter inspired by the 1944 Western Front. It is not a reconstruction of a named battle and does not claim historical casualty accuracy.
 
-- Blue and Red forces face each other across an open central gap.
-- Each force forms up by rank: recruits and junior enlisted ranks first, senior NCOs and warrant officers behind them, then commissioned officers.
-- Rank titles include Private, Private First Class, Corporal, Sergeant, Staff Sergeant, Warrant Officer, Second Lieutenant, Captain, Major, Colonel and General.
-- Rank affects marker size and illustrative resilience.
-- Firing produces a short-lived animated tracer; hits produce a flash.
-- Wounded and dead agents move out of their formation slots into a casualty area.
-- Surviving agents hold their original places, leaving visible gaps.
-- Runs are seeded and can be run without the graphical viewer.
+- Blue side: U.S. Army, with WWII-era rank titles.
+- Red side: German Heer (the army branch of the Wehrmacht), with Heer rank titles.
+- German Heer ranks are distinct from Waffen-SS ranks; the project does not model the Waffen-SS.
+- No Nazi political insignia or propaganda imagery is used.
+- Uniform colours are simplified visual cues, not exact reproductions of a particular division's kit.
 
-The rank list is a simplified U.S.-style army progression for recognisable titles. Rank systems and equivalent grades differ between countries and services.
+## What the simulation shows
+
+- Separate U.S. Army and German Heer rank ladders.
+- Rank-ordered formations, with junior enlisted agents nearer the central gap and senior ranks further back.
+- Larger markers and higher illustrative resilience for higher-ranked agents.
+- Tracer events, firing flashes and hit flashes.
+- Wounded and dead agents moving into visible casualty areas.
+- Live team totals and per-rank population counts.
+- Seeded, reproducible runs and a headless mode.
+
+The model is a toy simulation, not a tactical planner, weapons model, or predictor. Combat events are abstract stochastic game events; tracer graphics are visual indicators, not physical projectile paths. Rank-based resilience is an explicitly fictional gameplay rule, not a claim that senior officers were physically harder to injure.
 
 ## Requirements
 
@@ -43,24 +50,14 @@ python -m unittest discover -s tests -v
 - R: restart with the same seed
 - Esc: quit
 
-## Reading the screen
-
-- Blue and red markers show the opposing forces.
-- Marker size grows with rank.
-- Recruits begin closest to the open gap; higher ranks stand further back.
-- Gold markers are wounded; grey crossed markers are dead.
-- Coloured rings show firing and hit reactions.
-- Tracer lines animate across the gap. They are visual event indicators, not physical projectile paths.
-- Casualty areas sit behind each formation.
-
 ## Main files
 
 | File | Responsibility |
 |---|---|
-| `agent.py` | Rank ladder, agent attributes and states |
-| `battlefield.py` | Formation placement and casualty slots |
-| `simulation.py` | Seeded simulation, event sampling and casualty animation |
-| `viewer.py` | Arcade display and visual effects |
-| `tests/` | Model regression tests |
-| `MODEL.md` | Rules and assumptions |
-| `REFERENCES.md` | Rank and modelling references |
+| `agent.py` | U.S. and German rank ladders, agent attributes and states |
+| `battlefield.py` | Rank-ordered formation placement and casualty areas |
+| `simulation.py` | Seeded abstract event simulation and casualty animation |
+| `viewer.py` | Arcade display, rank counts and event effects |
+| `tests/` | Regression tests |
+| `MODEL.md` | Model rules and limitations |
+| `REFERENCES.md` | Historical rank and modelling sources |
