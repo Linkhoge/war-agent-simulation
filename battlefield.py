@@ -1,7 +1,7 @@
-"""World setup, rank-ordered formations, and casualty collection areas."""
+"""WWII U.S. Army and German Heer formations and casualty areas."""
 from dataclasses import dataclass
 import random
-from agent import Agent, Rank, RANK_ORDER, Team
+from agent import Agent, RANK_ORDERS, Team
 
 
 @dataclass(frozen=True)
@@ -26,7 +26,6 @@ class Battlefield:
         return self.blue_front_x if team == Team.BLUE else self.red_front_x
 
     def casualty_slot(self, team: Team, index: int) -> tuple[float, float]:
-        """Return a visible staging slot outside the active formation."""
         row, column = divmod(index, self.casualty_columns)
         y = self.margin + 3.0 + column * 5.5
         depth = self.margin + 3.0 + row * 2.6
@@ -35,13 +34,11 @@ class Battlefield:
 
 
 def _place_formation(agents: list[Agent], team: Team, world: Battlefield) -> None:
-    """Put the lowest rank nearest the gap and senior ranks progressively back."""
     centre_y = world.height / 2
     direction = -1 if team == Team.BLUE else 1
     front_x = world.front_line_x(team)
     depth_rows = 0
-
-    for rank in RANK_ORDER:
+    for rank in RANK_ORDERS[team]:
         ranked = sorted(
             (agent for agent in agents if agent.team == team and agent.rank == rank),
             key=lambda agent: agent.agent_id,
@@ -54,7 +51,7 @@ def _place_formation(agents: list[Agent], team: Team, world: Battlefield) -> Non
             y = centre_y + (column - (world.formation_columns - 1) / 2) * world.formation_spacing
             x = front_x + direction * ((depth_rows + row) * world.row_spacing)
             agent.x, agent.y = world.clamp(x, y)
-            agent.metadata["formation_rank_order"] = RANK_ORDER.index(rank)
+            agent.metadata["formation_rank_order"] = RANK_ORDERS[team].index(rank)
             agent.metadata["formation_row"] = row
             agent.metadata["formation_column"] = column
             agent.metadata["formation_x"] = agent.x
@@ -64,15 +61,15 @@ def _place_formation(agents: list[Agent], team: Team, world: Battlefield) -> Non
 
 def build_armies(blue_count: int, red_count: int, rng: random.Random,
                  world: Battlefield | None = None) -> list[Agent]:
-    """Build two fictional armies with a weighted spread of actual rank titles."""
     if blue_count < 1 or red_count < 1:
-        raise ValueError("Each team must contain at least one agent")
+        raise ValueError("Each army must contain at least one agent")
     world = world or Battlefield()
-    ranks = list(RANK_ORDER)
-    weights = [1.0 / ((index + 1) ** 1.35) for index in range(len(ranks))]
     agents = []
     next_id = 0
     for team, count in ((Team.BLUE, blue_count), (Team.RED, red_count)):
+        ranks = RANK_ORDERS[team]
+        # Enlisted grades dominate; officer and general ranks are progressively rarer.
+        weights = [1.0 / ((index + 1) ** 1.45) for index in range(len(ranks))]
         for _ in range(count):
             rank = rng.choices(ranks, weights=weights, k=1)[0]
             agents.append(Agent(
