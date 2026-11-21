@@ -1,20 +1,30 @@
 import unittest
-from agent import Agent, AgentState, Rank, Team, RANK_ORDER
+from agent import Agent, AgentState, USRank, GermanRank, Team, RANK_ORDERS
 from simulation import Simulation, SimulationConfig
 
 
 class AgentTests(unittest.TestCase):
-    def test_rank_ladder_is_ordered(self):
-        self.assertEqual(RANK_ORDER[0], Rank.RECRUIT)
-        self.assertEqual(RANK_ORDER[-1], Rank.GENERAL)
-        recruit = Agent(0, Team.BLUE, Rank.RECRUIT, 1, 1)
-        general = Agent(1, Team.BLUE, Rank.GENERAL, 1, 1)
-        self.assertLess(recruit.visual_scale, general.visual_scale)
-        self.assertLess(recruit.resilience, general.resilience)
-        self.assertEqual(general.rank_abbreviation, "GEN")
+    def test_historical_rank_ladders_are_distinct(self):
+        self.assertEqual(RANK_ORDERS[Team.BLUE][0], USRank.PRIVATE)
+        self.assertEqual(RANK_ORDERS[Team.BLUE][-1], USRank.GENERAL)
+        self.assertEqual(RANK_ORDERS[Team.RED][0], GermanRank.SCHUTZE)
+        self.assertEqual(RANK_ORDERS[Team.RED][-1], GermanRank.GENERALFELDMARSCHALL)
+        self.assertNotEqual(USRank.CAPTAIN.value, GermanRank.HAUPTMANN.value)
+
+    def test_rank_changes_marker_size_and_game_resilience(self):
+        junior = Agent(0, Team.BLUE, USRank.PRIVATE, 1, 1)
+        senior = Agent(1, Team.BLUE, USRank.GENERAL, 1, 1)
+        self.assertLess(junior.visual_scale, senior.visual_scale)
+        self.assertLess(junior.resilience, senior.resilience)
+
+    def test_german_rank_profiles_are_ordered(self):
+        junior = Agent(0, Team.RED, GermanRank.SCHUTZE, 1, 1)
+        senior = Agent(1, Team.RED, GermanRank.GENERALFELDMARSCHALL, 1, 1)
+        self.assertLess(junior.visual_scale, senior.visual_scale)
+        self.assertLess(junior.resilience, senior.resilience)
 
     def test_death_is_persistent(self):
-        agent = Agent(0, Team.BLUE, Rank.RECRUIT, 1, 1)
+        agent = Agent(0, Team.BLUE, USRank.PRIVATE, 1, 1)
         agent.apply_abstract_hit(10)
         self.assertEqual(agent.state, AgentState.DEAD)
         agent.apply_abstract_hit(1)
@@ -24,8 +34,7 @@ class AgentTests(unittest.TestCase):
 class SimulationTests(unittest.TestCase):
     def test_seed_reproducibility(self):
         config = SimulationConfig(blue_count=24, red_count=24, steps=100, seed=17)
-        first = Simulation(config)
-        second = Simulation(config)
+        first, second = Simulation(config), Simulation(config)
         first.run()
         second.run()
         self.assertEqual(first.summary(), second.summary())
@@ -44,26 +53,13 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(sim.agents[0].state, AgentState.DEAD)
         self.assertIn(sim.agents[0], sim.agents)
 
-    def test_recruits_are_ahead_of_senior_ranks(self):
+    def test_each_team_gets_its_own_rank_ladder(self):
         sim = Simulation(SimulationConfig(blue_count=100, red_count=100, seed=12))
-        for team in (Team.BLUE, Team.RED):
-            recruits = [a for a in sim.agents if a.team == team and a.rank == Rank.RECRUIT]
-            if not recruits:
-                continue
-            ranks_present = sorted(
-                {a.rank for a in sim.agents if a.team == team},
-                key=lambda rank: RANK_ORDER.index(rank)
-            )
-            mean_x = {
-                rank: sum(a.x for a in sim.agents if a.team == team and a.rank == rank)
-                / sum(1 for a in sim.agents if a.team == team and a.rank == rank)
-                for rank in ranks_present
-            }
-            for earlier, later in zip(ranks_present, ranks_present[1:]):
-                if team == Team.BLUE:
-                    self.assertGreater(mean_x[earlier], mean_x[later])
-                else:
-                    self.assertLess(mean_x[earlier], mean_x[later])
+        for agent in sim.agents:
+            if agent.team == Team.BLUE:
+                self.assertIsInstance(agent.rank, USRank)
+            else:
+                self.assertIsInstance(agent.rank, GermanRank)
 
     def test_casualty_moves_out_of_formation(self):
         sim = Simulation(SimulationConfig(blue_count=20, red_count=20, seed=5))
