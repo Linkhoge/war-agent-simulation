@@ -59,13 +59,12 @@ class Simulation:
         duration=max(1,self.config.casualty_animation_ticks)
         for a in self.agents:
             if a.casualty_target is None or a.casualty_start is None: continue
+            # Wounded soldiers crawl under their own power in _move_agents.
+            if a.state == AgentState.WOUNDED: continue
             elapsed=self.tick-a.casualty_started_tick
             progress=min(1,max(0,elapsed/duration))
             sx,sy=a.casualty_start; tx,ty=a.casualty_target
-            # Wounded soldiers move slowly; dead soldiers are carried by the visual casualty animation.
-            factor=.35 if a.state==AgentState.WOUNDED else 1.0
-            p=min(1.0,progress*factor)
-            a.x=sx+(tx-sx)*p; a.y=sy+(ty-sy)*p
+            a.x=sx+(tx-sx)*progress; a.y=sy+(ty-sy)*progress
 
     def _move_agents(self):
         for a in self.agents:
