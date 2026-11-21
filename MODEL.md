@@ -1,49 +1,44 @@
 # Model specification
 
-## Purpose
+## Scenario
 
-A transparent, fictional agent-based model for experimenting with heterogeneous agents, formations, state changes, stochastic events and visualisation.
+The default setting is a fictional, stylised Western Front encounter in 1944. The opposing populations are labelled U.S. Army and German Heer. It is not a reconstruction of a named engagement.
 
-## Rank hierarchy
+## Historical rank ladders
 
-The simulation uses a simplified U.S.-style army rank sequence: Recruit, Private, Private First Class, Specialist, Corporal, Sergeant, Staff Sergeant, Sergeant First Class, Master Sergeant, Sergeant Major, Warrant Officer 1, Chief Warrant Officer 2–5, Second Lieutenant, First Lieutenant, Captain, Major, Lieutenant Colonel, Colonel, Brigadier General, Major General, Lieutenant General and General.
+The U.S. side uses WWII-era U.S. Army grades, including Private, Private First Class, Technician grades 5 through 3, Corporal, Sergeant, Staff Sergeant, Technical Sergeant, First Sergeant, Master Sergeant, warrant officers, and commissioned officers through General.
 
-This is a convenient single progression for the toy model, not a claim that all armies use these titles or place every specialist grade identically. Some ranks share pay grades or are alternative appointments in real services.
+The German side uses Heer rank titles, including Schütze, Oberschütze, Gefreiter, Obergefreiter, Stabsgefreiter, Unteroffizier, Unterfeldwebel, Feldwebel, Oberfeldwebel, Stabsfeldwebel, Leutnant, Oberleutnant, Hauptmann, Major, Oberstleutnant, Oberst and general-officer grades through Generalfeldmarschall.
 
-## Formation layout
+The German list represents the Heer, not the Waffen-SS. Rank titles and grade structures changed during the war; this is a practical display ladder rather than an exhaustive personnel classification.
 
-- Blue and Red occupy opposite sides of the field.
-- Their front lines face the open central gap.
-- Agents are sorted from lowest to highest rank.
-- Recruits and junior ranks are nearest the gap; senior enlisted, warrant officers and commissioned officers are placed progressively further back.
-- Large rank groups wrap into additional rows.
-- Living agents retain their formation slots in this version.
+## Population and formations
 
-## Rank attributes
+- Blue agents use the U.S. rank ladder; red agents use the German Heer ladder.
+- Junior ranks are sampled more frequently than senior NCOs and officers.
+- Each side is placed in its own rank order, with junior ranks nearest the central gap.
+- Agents keep their assigned formation position unless they become casualties.
 
-Rank controls marker scale and an illustrative resilience value. Higher ranks are larger and more resilient in the game model because that is the requested visual/gameplay convention. These values do not represent real-world protection, combat skill, or survival rates.
+## Agent attributes
+
+Rank determines marker size and an illustrative resilience/experience profile. These values are game abstractions chosen for visual distinction. They are not measured historical survivability or evidence that senior ranks were physically more resistant.
 
 ## Event and animation loop
 
-1. The model samples abstract cross-team encounter events.
+1. The model samples abstract cross-team encounters.
 2. A firing event creates a short-lived tracer whether or not it hits.
-3. The firing agent briefly displays a muzzle flash ring.
-4. A successful hit applies an illustrative health change and briefly flashes the affected agent.
-5. When an agent becomes wounded or dead, it is assigned a casualty-area destination.
-6. The agent animates from its formation slot to that destination; surviving agents stay in place.
-7. Team totals and cumulative shots are recorded.
+3. The source briefly flashes to indicate firing.
+4. A successful event applies an abstract health change and a hit flash.
+5. Agents becoming wounded or dead receive a casualty-area destination.
+6. Casualties animate out of formation; survivors remain in place.
+7. Team and rank counts are recorded.
 
-Tracer graphics are event visualisations, not ballistic paths. There is no realistic weapon, aiming, range, target-selection, cover, or tactical decision model.
-
-## Reproducibility
-
-A local `random.Random(seed)` instance controls each run. The same configuration and Python version should reproduce the same event sequence.
+There is no realistic weapon, aiming, range, target-selection, cover, tactical decision, or ballistic model.
 
 ## Limitations
 
-- Parameters are illustrative and not empirically calibrated.
-- The rank ladder is a simplified reference hierarchy, not a universal armed-forces standard.
-- Casualties leave the formation but remain visible in the casualty area.
-- Wounded agents are inactive in this iteration.
-- The formations do not advance or manoeuvre.
+- The scenario is fictional and not tied to a named historical battle.
+- Combat probabilities are illustrative and not empirically calibrated.
+- Rank populations are generated by a simple weighting function, not historical tables of organization.
+- The historical rank ladders are simplified and omit specialist and service-specific variants.
 - No real-world casualty inference should be made.
