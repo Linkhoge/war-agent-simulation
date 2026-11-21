@@ -43,6 +43,26 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(sim.agents[0].state, AgentState.DEAD)
         self.assertIn(sim.agents[0], sim.agents)
 
+    def test_recruits_are_ahead_of_regulars_and_veterans(self):
+        sim = Simulation(SimulationConfig(blue_count=60, red_count=60, seed=12))
+        for team in (Team.BLUE, Team.RED):
+            recruits = [a for a in sim.agents if a.team == team and a.rank == Rank.RECRUIT]
+            regulars = [a for a in sim.agents if a.team == team and a.rank == Rank.REGULAR]
+            veterans = [a for a in sim.agents if a.team == team and a.rank == Rank.VETERAN]
+            self.assertTrue(recruits and regulars and veterans)
+            if team == Team.BLUE:
+                self.assertGreater(min(a.x for a in regulars), min(a.x for a in recruits))
+                self.assertGreater(min(a.x for a in veterans), min(a.x for a in regulars))
+            else:
+                self.assertLess(max(a.x for a in regulars), max(a.x for a in recruits))
+                self.assertLess(max(a.x for a in veterans), max(a.x for a in regulars))
+
+    def test_formation_positions_stay_fixed(self):
+        sim = Simulation(SimulationConfig(blue_count=12, red_count=12, steps=20, seed=9))
+        before = [(a.x, a.y) for a in sim.agents]
+        sim.run()
+        self.assertEqual(before, [(a.x, a.y) for a in sim.agents])
+
 
 if __name__ == "__main__":
     unittest.main()
