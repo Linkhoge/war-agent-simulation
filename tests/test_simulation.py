@@ -61,9 +61,9 @@ class SimulationTests(unittest.TestCase):
             }
             for earlier, later in zip(ranks_present, ranks_present[1:]):
                 if team == Team.BLUE:
-                    self.assertLess(mean_x[earlier], mean_x[later])
-                else:
                     self.assertGreater(mean_x[earlier], mean_x[later])
+                else:
+                    self.assertLess(mean_x[earlier], mean_x[later])
 
     def test_casualty_moves_out_of_formation(self):
         sim = Simulation(SimulationConfig(blue_count=20, red_count=20, seed=5))
