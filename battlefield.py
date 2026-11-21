@@ -31,6 +31,7 @@ def _place_formation(agents: list[Agent], team: Team, world: Battlefield) -> Non
     centre_y = world.height / 2
     direction = -1 if team == Team.BLUE else 1
     front_x = world.front_line_x(team)
+    depth_rows = 0
     for rank_index, rank in enumerate(rank_order):
         ranked = sorted(
             (agent for agent in agents if agent.team == team and agent.rank == rank),
@@ -39,11 +40,12 @@ def _place_formation(agents: list[Agent], team: Team, world: Battlefield) -> Non
         for index, agent in enumerate(ranked):
             row, column = divmod(index, world.formation_columns)
             y = centre_y + (column - (world.formation_columns - 1) / 2) * world.formation_spacing
-            x = front_x + direction * (rank_index * world.rank_depth + row * 2.2)
+            x = front_x + direction * ((depth_rows + row) * 2.2)
             agent.x, agent.y = world.clamp(x, y)
             agent.metadata["formation_rank_order"] = rank_index
             agent.metadata["formation_row"] = row
             agent.metadata["formation_column"] = column
+        depth_rows += max(1, (len(ranked) + world.formation_columns - 1) // world.formation_columns)
 
 
 def build_armies(blue_count: int, red_count: int, rng: random.Random,
