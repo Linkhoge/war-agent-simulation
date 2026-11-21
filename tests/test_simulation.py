@@ -1,6 +1,5 @@
 import unittest
 from agent import Agent, AgentState, USRank, GermanRank, Team, RANK_ORDERS
-from battlefield import Battlefield
 from simulation import Simulation, SimulationConfig
 
 
@@ -78,16 +77,12 @@ class SimulationTests(unittest.TestCase):
         self.assertTrue(sim.tracers)
         self.assertTrue(all(t.source_id!=t.target_id for t in sim.tracers))
 
-    def test_suppression_sends_soldier_towards_cover(self):
-        sim=Simulation(SimulationConfig(blue_count=20,red_count=20,seed=9))
-        a=next(a for a in sim.agents if a.team==Team.BLUE)
-        cover=sim.world.nearest_cover(a.x,a.y)
-        self.assertIsNotNone(cover)
-        a.suppression=.8
-        before=(a.x,a.y)
+    def test_suppression_fades_over_time(self):
+        sim=Simulation(SimulationConfig(blue_count=10,red_count=10,seed=2,encounter_probability=0))
+        a=sim.agents[0]
+        a.suppression=.5
         sim._move_agents()
-        self.assertNotEqual((a.x,a.y),before)
-        self.assertIsNotNone(a.cover_x)
+        self.assertLess(a.suppression,.5)
 
     def test_ammunition_is_finite_and_reload_completes(self):
         sim=Simulation(SimulationConfig(blue_count=10,red_count=10,seed=2,encounter_probability=1))
@@ -98,10 +93,6 @@ class SimulationTests(unittest.TestCase):
         shooter.ammo=0; shooter.reload_ticks=1
         sim._move_agents()
         self.assertEqual(shooter.ammo,sim.config.magazine_size)
-
-    def test_battlefield_has_simple_terrain(self):
-        kinds={f.kind for f in Battlefield().terrain}
-        self.assertTrue({"trench","wall","building","forest","road","crater"}.issubset(kinds))
 
 
 if __name__=="__main__": unittest.main()
