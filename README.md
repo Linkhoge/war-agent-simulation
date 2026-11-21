@@ -4,16 +4,14 @@ An educational, fictional agent-based battlefield toy model. It adapts the modul
 
 This is **not** a realistic military simulator, tactical planner, or predictor. Combat is an abstract stochastic game mechanic; parameters are illustrative and are not calibrated to real-world weapons, people, or conflicts.
 
-## Features in the first milestone
+## Current features
 
-- Two fictional teams: Blue and Red.
-- Individual agents with rank, experience, morale, health, and operational state.
-- Recruit, regular, and veteran visual hierarchy.
-- Recruits have higher *abstract* casualty vulnerability; veterans have greater *abstract* resilience.
-- Discrete simulation steps and reproducible seeded random runs.
-- Abstract projectile/tracer events for visual feedback.
-- Persistent wounded and dead states, plus team-level statistics.
-- Headless mode for repeatable experiments.
+- Two opposing teams with a visible front battle line and an open central gap.
+- Organised formations: recruits at the front, regulars behind them, veterans in the rear.
+- Agents are arranged in rows and columns; oversized rank groups wrap into additional rows.
+- Rank-based visual scale and illustrative resilience differences.
+- Abstract projectile/tracer events and persistent wounded/dead markers.
+- Seeded runs, headless mode, and team-level casualty statistics.
 
 ## Requirements
 
@@ -32,7 +30,7 @@ python main.py --headless --blue 100 --red 100 --steps 500 --seed 7
 python -m unittest discover -s tests -v
 ```
 
-The graphical viewer uses Arcade. If Arcade is unavailable, use `--headless` or install the requirements.
+The graphical viewer uses Arcade.
 
 ## Controls
 
@@ -41,25 +39,21 @@ The graphical viewer uses Arcade. If Arcade is unavailable, use `--headless` or 
 - R: restart with the same seed
 - Esc: quit
 
-## Model overview
+## Formation layout
 
-Each agent is an independent entity. A step updates agent movement, evaluates abstract encounters, emits short-lived visual tracer events, updates health/state, and records statistics. The model uses a seeded Python random generator rather than global random state.
-
-Ranks influence visual scale and illustrative resilience/vulnerability parameters. They do not represent real-world survival probabilities. See [MODEL.md](MODEL.md) for assumptions and limitations.
+Blue stands on the left and Red on the right. Their front lines face the central open space. Recruits are closest to that space; regulars and veterans are placed progressively farther back. Casualty markers stay in their assigned slots, so losses are visible as gaps or changed markers.
 
 ## Project structure
 
 | File | Responsibility |
 |---|---|
 | `agent.py` | Agent attributes, ranks, and states |
-| `battlefield.py` | World bounds and team setup |
-| `simulation.py` | Seeded discrete-time model and statistics |
-| `viewer.py` | Optional Arcade visualisation |
+| `battlefield.py` | World bounds and rank-ordered formation setup |
+| `simulation.py` | Seeded discrete-time model and abstract events |
+| `viewer.py` | Arcade visualisation |
 | `main.py` | CLI and entry point |
 | `tests/` | Model regression tests |
 | `MODEL.md` | Rules, assumptions, and limitations |
 | `REFERENCES.md` | Attribution and reading list |
 
-## Attribution
-
-The architecture borrows general agent-based modelling ideas from the linked rumour simulation and disease-modeling article. This repository is a new implementation; it does not copy the rumour model's domain-specific rules or claim that the cited work validates these combat abstractions.
+See [MODEL.md](MODEL.md) for the assumptions and limitations. Formation and casualty parameters are illustrative and are not real-world estimates.
