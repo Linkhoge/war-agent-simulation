@@ -11,7 +11,7 @@ class SimulationConfig:
     red_count: int=30
     steps: int=1200
     seed: int=42
-    encounter_probability: float=.055
+    encounter_probability: float=.18
     hit_probability: float=.28
     wound_severity: float=.38
     casualty_animation_ticks: int=10
@@ -76,27 +76,43 @@ class Simulation:
                     a.x,a.y=self.world.clamp(a.x+dx/dist*.12,a.y+dy/dist*.12)
                 continue
             a.suppression=max(0.0,a.suppression-.012)
+            if a.metadata.get("assembling"):
+                tx=a.metadata["formation_x"]; ty=a.metadata["formation_y"]
+                dx=tx-a.x; dy=ty-a.y
+                distance=(dx*dx+dy*dy)**.5
+                if distance<=.35:
+                    a.x,a.y=tx,ty
+                    a.metadata["assembling"]=False
+                    a.metadata["assembled"]=True
+                else:
+                    speed=.42
+                    a.x,a.y=self.world.clamp(a.x+dx/distance*speed,a.y+dy/distance*speed)
+                continue
             if a.reload_ticks>0:
                 a.reload_ticks-=1
                 if a.reload_ticks==0: a.ammo=self.config.magazine_size
 
     def _abstract_encounters(self):
-        blue=[a for a in self.agents if a.team==Team.BLUE and a.is_operational]
-        red=[a for a in self.agents if a.team==Team.RED and a.is_operational]
+        blue=[a for a in self.agents if a.team==Team.BLUE and a.is_operational
+              and a.metadata.get("assembled")]
+        red=[a for a in self.agents if a.team==Team.RED and a.is_operational
+             and a.metadata.get("assembled")]
         if not blue or not red: return
-        attempts=min(len(blue),len(red),max(1,(len(blue)+len(red))//8))
+        attempts=min(len(blue),len(red),max(1,(len(blue)+len(red))//10))
         for _ in range(attempts):
             if self.rng.random()>=self.config.encounter_probability: continue
             source=self.rng.choice(blue if self.rng.random()<.5 else red)
             opposing=red if source.team==Team.BLUE else blue
-            target=self.rng.choice(opposing)
-            target.suppression=min(1.0,target.suppression+.16)
+            # A simple ray trace: aim at the nearest enemy and draw a straight tracer.
+            target=min(opposing,key=lambda enemy:(enemy.x-source.x)**2+(enemy.y-source.y)**2)
             if source.reload_ticks>0: continue
             if source.ammo<=0:
                 source.reload_ticks=self.config.reload_duration
                 continue
-            source.ammo-=1; source.shots_fired+=1; source.fire_flash_until=self.tick+2
-            # Experience and suppression affect a simple abstract hit chance.
+            source.ammo-=1
+            source.shots_fired+=1
+            source.fire_flash_until=self.tick+3
+            target.suppression=min(1.0,target.suppression+.16)
             experience_bonus=source.experience*.10
             accuracy=max(.04,min(.8,self.config.hit_probability+experience_bonus
                                  -source.suppression*.12))
@@ -106,7 +122,7 @@ class Simulation:
             if hit:
                 previous=target.state
                 target.apply_abstract_hit(self.config.wound_severity)
-                target.hit_flash_until=self.tick+4
+                target.hit_flash_until=self.tick+5
                 if previous==AgentState.ACTIVE and target.state!=AgentState.ACTIVE:
                     self._send_to_casualty_area(target)
 
