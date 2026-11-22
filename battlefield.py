@@ -12,8 +12,8 @@ class Battlefield:
     blue_front_x: float = 36.0
     red_front_x: float = 64.0
     formation_columns: int = 8
-    formation_spacing: float = 3.8
-    row_spacing: float = 0.9
+    formation_spacing: float = 5.0
+    row_spacing: float = 2.2
     casualty_columns: int = 8
 
     def clamp(self, x, y):
@@ -36,19 +36,21 @@ def _place_formation(agents,team,world):
     direction=-1 if team==Team.BLUE else 1
     front_x=world.front_line_x(team)
     depth_rows=0
+    slot_index=0
     for rank in RANK_ORDERS[team]:
         ranked=sorted((a for a in agents if a.team==team and a.rank==rank),key=lambda a:a.agent_id)
-        if not ranked: continue
-        rows=(len(ranked)+world.formation_columns-1)//world.formation_columns
-        for index,agent in enumerate(ranked):
-            row,column=divmod(index,world.formation_columns)
+        for agent in ranked:
+            row,column=divmod(slot_index,world.formation_columns)
             y=centre_y+(column-(world.formation_columns-1)/2)*world.formation_spacing
-            x=front_x+direction*((depth_rows+row)*world.row_spacing)
-            agent.x,agent.y=world.clamp(x,y)
+            x=front_x+direction*(row*world.row_spacing)
+            target_x,target_y=world.clamp(x,y)
+            agent.x=world.margin if team==Team.BLUE else world.width-world.margin
+            agent.y=target_y
             agent.metadata.update(formation_rank_order=RANK_ORDERS[team].index(rank),
                                   formation_row=row,formation_column=column,
-                                  formation_x=agent.x,formation_y=agent.y)
-        depth_rows+=rows
+                                  formation_x=target_x,formation_y=target_y,
+                                  assembling=True)
+            slot_index+=1
 
 
 def build_armies(blue_count,red_count,rng,world=None):
