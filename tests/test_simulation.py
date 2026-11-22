@@ -71,6 +71,30 @@ class SimulationTests(unittest.TestCase):
         self.assertNotEqual((a.x,a.y),original)
         self.assertEqual((a.x,a.y),a.casualty_target)
 
+    def test_soldiers_start_at_rear_and_assemble_into_unique_slots(self):
+        sim=Simulation(SimulationConfig(blue_count=24,red_count=24,seed=14))
+        blue=[a for a in sim.agents if a.team==Team.BLUE]
+        red=[a for a in sim.agents if a.team==Team.RED]
+        self.assertTrue(all(a.metadata.get("assembling") for a in sim.agents))
+        self.assertTrue(all(a.x==sim.world.margin for a in blue))
+        self.assertTrue(all(a.x==sim.world.width-sim.world.margin for a in red))
+        targets=[(a.metadata["formation_x"],a.metadata["formation_y"]) for a in sim.agents]
+        self.assertEqual(len(targets),len(set(targets)))
+        before=blue[0].x
+        sim._move_agents()
+        self.assertNotEqual(blue[0].x,before)
+
+    def test_shooting_starts_after_assembly(self):
+        sim=Simulation(SimulationConfig(blue_count=8,red_count=8,seed=18,
+                                        encounter_probability=1.0))
+        sim._abstract_encounters()
+        self.assertEqual(sim.tracers,[])
+        for _ in range(200):
+            sim._move_agents()
+        self.assertTrue(all(a.metadata.get("assembled") for a in sim.agents))
+        sim._abstract_encounters()
+        self.assertTrue(sim.tracers)
+
     def test_shots_create_visible_tracer_events(self):
         sim=Simulation(SimulationConfig(blue_count=60,red_count=60,steps=5,seed=21,encounter_probability=1.0))
         sim._abstract_encounters()
