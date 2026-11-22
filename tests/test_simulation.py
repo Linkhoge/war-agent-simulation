@@ -97,6 +97,9 @@ class SimulationTests(unittest.TestCase):
 
     def test_shots_create_visible_tracer_events(self):
         sim=Simulation(SimulationConfig(blue_count=60,red_count=60,steps=5,seed=21,encounter_probability=1.0))
+        for agent in sim.agents:
+            agent.metadata["assembled"]=True
+            agent.metadata["assembling"]=False
         sim._abstract_encounters()
         self.assertTrue(sim.tracers)
         self.assertTrue(all(t.source_id!=t.target_id for t in sim.tracers))
@@ -111,6 +114,9 @@ class SimulationTests(unittest.TestCase):
     def test_ammunition_is_finite_and_reload_completes(self):
         sim=Simulation(SimulationConfig(blue_count=10,red_count=10,seed=2,encounter_probability=1))
         shooter=next(a for a in sim.agents if a.team==Team.BLUE)
+        for agent in sim.agents:
+            agent.metadata["assembled"]=True
+            agent.metadata["assembling"]=False
         shooter.ammo=1
         sim._abstract_encounters()
         self.assertLessEqual(shooter.ammo,1)
