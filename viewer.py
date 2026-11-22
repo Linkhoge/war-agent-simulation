@@ -21,7 +21,19 @@ class BattleWindow(arcade.Window):
         self.paused = False
         self.speed = 1
         self.accumulator = 0.0
+        self.tick_interval = 1 / 30
         self.set_update_rate(1 / 60)
+
+    def on_update(self, delta_time):
+        # Advance the model; drawing alone does not move agents or create shots.
+        if self.paused or self.sim.tick >= self.sim.config.steps:
+            return
+        self.accumulator += delta_time
+        while self.accumulator >= self.tick_interval:
+            for _ in range(self.speed):
+                if not self.sim.step():
+                    break
+            self.accumulator -= self.tick_interval
 
     def on_key_press(self, symbol, modifiers):
         if symbol == arcade.key.SPACE:
@@ -102,8 +114,10 @@ class BattleWindow(arcade.Window):
             f"Step {self.sim.tick:,} / {self.sim.config.steps:,}",
             panel_x, SCREEN_H - 106, PALE, 13
         )
+        assembling = sum(bool(a.metadata.get("assembling")) for a in self.sim.agents)
+        phase = "ASSEMBLING" if assembling else "ENGAGED"
         arcade.draw_text(
-            f"Speed {self.speed}x   {'PAUSED' if self.paused else 'RUNNING'}",
+            f"{phase}  ·  Speed {self.speed}x   {'PAUSED' if self.paused else 'RUNNING'}",
             panel_x, SCREEN_H - 130, GOLD, 11
         )
 
