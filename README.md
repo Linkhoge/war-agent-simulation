@@ -17,9 +17,9 @@ The default scenario is a fictional encounter inspired by the 1944 Western Front
 ## What the simulation shows
 
 - Separate U.S. Army and German Heer rank ladders.
-- Rank-ordered formations, with junior enlisted agents nearer the central gap and senior ranks further back.
+- Soldiers walk in from opposite ends and assemble into spaced, rank-ordered formations.
 - Larger markers and higher illustrative resilience for higher-ranked agents.
-- Tracer events, firing flashes and hit flashes.
+- Nearest-enemy targeting with visible straight-line tracer shots, firing flashes and hit flashes.
 - Wounded and dead agents moving into visible casualty areas.
 - Live team totals and per-rank population counts.
 - Seeded, reproducible runs and a headless mode.
