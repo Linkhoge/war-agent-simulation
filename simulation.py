@@ -76,6 +76,9 @@ class Simulation:
                     a.x,a.y=self.world.clamp(a.x+dx/dist*.12,a.y+dy/dist*.12)
                 continue
             a.suppression=max(0.0,a.suppression-.012)
+            if a.reload_ticks>0:
+                a.reload_ticks-=1
+                if a.reload_ticks==0: a.ammo=self.config.magazine_size
             if a.metadata.get("assembling"):
                 tx=a.metadata["formation_x"]; ty=a.metadata["formation_y"]
                 dx=tx-a.x; dy=ty-a.y
@@ -88,9 +91,6 @@ class Simulation:
                     speed=.42
                     a.x,a.y=self.world.clamp(a.x+dx/distance*speed,a.y+dy/distance*speed)
                 continue
-            if a.reload_ticks>0:
-                a.reload_ticks-=1
-                if a.reload_ticks==0: a.ammo=self.config.magazine_size
 
     def _abstract_encounters(self):
         blue=[a for a in self.agents if a.team==Team.BLUE and a.is_operational
